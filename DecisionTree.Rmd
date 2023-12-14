@@ -1,0 +1,27 @@
+---
+title: "decision tree"
+author: "Yuxiao Nie"
+date: "2023-11-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(rpart)
+adata <- read.csv("heart_disease_health_indicators.csv")
+adata <- data.frame(adata)
+set.seed(123)
+sample_index <- sample(nrow(adata), 0.7 * nrow(adata))
+adata.train <- adata[sample_index, ]
+adata.test <- adata[-sample_index, ]
+```
+
+
+```{r}
+tree_model <- rpart(HeartDiseaseorAttack ~ HighBP + HighChol + BMI + Smoker + Stroke, data = adata.train, method = "class")
+printcp(tree_model)
+print(tree_model)
+prediction <- predict(tree_model, newdata = adata.test, type = "class")
+print(prediction)
+```
+
+

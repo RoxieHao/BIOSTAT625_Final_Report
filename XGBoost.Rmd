@@ -1,0 +1,120 @@
+---
+title: "Xgboost"
+author: "Zhuoxin Fu"
+date: "2023-12-5"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Prepare packages
+library(h2o)
+library(xgboost)
+library(caTools)
+```
+
+```{r}
+# Input data
+hd <- read.csv("/Users/fzxfile/Desktop/BIOSTAT625/final project/heartdisease_cleaned_data_final.csv")
+
+# Data processing
+selectdata <- c(
+  "State",
+  "Sex",
+  "LastCheckupTime",
+  "PhysicalActivities",
+  "HadHeartAttack",
+  "HadAngina",
+  "HadStroke",
+  "HadAsthma",
+  "HadDepressiveDisorder",
+  "HadKidneyDisease",
+  "HadDiabetes",
+  "DifficultyWalking",
+  "SmokerStatus",
+  "ChestScan",
+  "RaceEthnicityCategory",
+  "AgeCategory",
+  "AlcoholDrinkers",
+  "HighRiskLastYear",
+  "CovidPos"
+)
+
+hd[, selectdata] <- lapply(hd[, selectdata], as.factor)
+```
+
+```{r}
+# Saperate train-test dataset
+set.seed(123)
+sep <- sample.split(hd$HadHeartAttack, SplitRatio = 0.7)
+train <- subset(hd, sep == TRUE)
+test  <- subset(hd, sep == FALSE)
+```
+
+```{r}
+# Initialize the H2O cluster
+h2o.init()
+h2o.clusterInfo()
+```
+
+```{r}
+# Convert data frame to an H2O object
+train_h2o <- as.h2o(train)
+test_h2o <- as.h2o(test)
+
+train_h2o$HadHeartAttack <- as.factor(train_h2o$HadHeartAttack)
+test_h2o$HadHeartAttack <- as.factor(test_h2o$HadHeartAttack)
+```
+
+```{r}
+# Split data into predictor columns and target column
+predictor_columns <- setdiff(names(train_h2o), "HadHeartAttack")
+target_column <- "HadHeartAttack"
+```
+
+```{r}
+# Train XGBoost model
+heartdisease_xgb_h2o <- h2o.xgboost(
+  x = predictor_columns,
+  y = target_column,
+  training_frame = train_h2o,
+  model_id = "heartdisease_xgb_h2o",
+  ntrees = 100,
+  booster = "gbtree", 
+  eval_metric = "auc", 
+  max_depth = 6, 
+  eta = 0.3, 
+  seed = 3
+  )
+# Print the model
+print(heartdisease_xgb_h2o)
+```
+
+```{r}
+# Confusion Matrix
+h2o.confusionMatrix(heartdisease_xgb_h2o)
+# Variable Importance
+h2o.varimp(heartdisease_xgb_h2o)
+```
+
+```{r}
+# Use the model to make predictions on the test set
+xgb_prediction <- h2o.predict(heartdisease_xgb_h2o, newdata = test_h2o)
+print(xgb_prediction)
+```
+
+```{r}
+# Show AUC of predicted model
+xgb_perf <- h2o.performance(heartdisease_xgb_h2o, newdata = test_h2o)
+xgb_auc <- h2o.auc(xgb_perf)
+print(paste("predict AUC: ", xgb_auc))
+```
+
+```{r}
+# Shutdown h2o
+h2o.shutdown()
+```
+

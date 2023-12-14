@@ -1,0 +1,125 @@
+---
+title: "RandomForest"
+author: "Ruoxi Hao"
+date: "2023-12-14"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Prepare packages
+library(h2o)
+```
+
+```{r data processing}
+# Input data
+heartdisease <- read.csv("/Users/r.xi/Desktop/BIOS625/Final Project/heartdisease_cleaned_data.csv", header = T)
+
+# data processing
+heartdisease[, c(
+  "State",
+  "Sex",
+  "LastCheckupTime",
+  "PhysicalActivities",
+  "HadHeartAttack",
+  "HadAngina",
+  "HadStroke",
+  "HadAsthma",
+  "HadDepressiveDisorder",
+  "HadKidneyDisease",
+  "HadDiabetes",
+  "DifficultyWalking",
+  "SmokerStatus",
+  "ChestScan",
+  "RaceEthnicityCategory",
+  "AgeCategory",
+  "AlcoholDrinkers",
+  "HighRiskLastYear",
+  "CovidPos"
+)] <-
+  lapply(heartdisease[, c(
+    "State",
+    "Sex",
+    "LastCheckupTime",
+    "PhysicalActivities",
+    "HadHeartAttack",
+    "HadAngina",
+    "HadStroke",
+    "HadAsthma",
+    "HadDepressiveDisorder",
+    "HadKidneyDisease",
+    "HadDiabetes",
+    "DifficultyWalking",
+    "SmokerStatus",
+    "ChestScan",
+    "RaceEthnicityCategory",
+    "AgeCategory",
+    "AlcoholDrinkers",
+    "HighRiskLastYear",
+    "CovidPos"
+  )], as.factor)
+
+```
+
+```{r seperate train data and test data}
+
+# seperate the whole dataset into train data and test data.
+sep <- sample(2,nrow(heartdisease),replace = TRUE,prob = c(0.7,0.3))
+train <- heartdisease[sep == 1,]
+test <- heartdisease[sep == 2,]
+```
+
+Because there are over 24k data in the dataset, we use h2o to build up random forest model
+
+```{r randomForest}
+# Initialize the H2O cluster
+h2o.init()
+h2o.clusterInfo()
+
+# Convert data frame to an H2O object
+seed = 1
+train_h2o <- as.h2o(train)
+test_h2o <- as.h2o(test)
+
+train_h2o$HadHeartAttack <- as.factor(train_h2o$HadHeartAttack)
+test_h2o$HadHeartAttack <- as.factor(test_h2o$HadHeartAttack)
+
+# Split your data into predictor columns and target column
+predictor_columns <- setdiff(names(train_h2o), "HadHeartAttack")
+target_column <- "HadHeartAttack"
+
+# 1. Fit the model
+heartdisease_rf_h2o <- h2o.randomForest(
+  x = predictor_columns,
+  y = target_column,
+  training_frame = train_h2o,
+  ntrees = 100,
+  mtries = 3, 
+  seed = 123
+)
+
+# Print the model
+print(heartdisease_rf_h2o)
+
+#Confusion Matrix
+h2o.confusionMatrix(heartdisease_rf_h2o)
+
+# Variable Importance
+h2o.varimp(heartdisease_rf_h2o)
+
+# 2. predicting in test data
+
+# Use the model to make predictions on the test set
+prediction <- h2o.predict(heartdisease_rf_h2o, newdata = test_h2o)
+print(prediction)
+# get AUC of predicted model
+perf <- h2o.performance(heartdisease_rf_h2o, newdata = test_h2o)
+auc <- h2o.auc(perf)
+print(paste("AUC: ", auc))
+
+h2o.shutdown()
+
+
+```
