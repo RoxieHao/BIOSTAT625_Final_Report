@@ -1,0 +1,123 @@
+---
+title: "Graphic"
+author: "Zhuoxin Fu"
+date: "2023-12-6"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#sum accuracy of models
+library(graphics)
+auc <- data.frame(models = c('decision tree','random forest','xgboost'),
+                  auc_test = c(0.8687, 0.8765, 0.8889))
+auc
+```
+
+```{r}
+# plot accuracy of models
+barplot_result <- barplot(height = c(auc$auc_test), 
+                          beside = TRUE, 
+                          col = c("lightblue"),
+                          main =  "Accuracy of Models", 
+                          xlab = "Models", 
+                          ylab = "AUC",
+                          names.arg = auc$models,
+                          ylim = c(0, 1))
+# add values on top of each bar
+text(x = barplot_result,  
+     y = auc$auc_test + 0.02,  
+     labels = round(auc$auc_test, 3),  
+     pos = 3,  
+     col = "black")  
+```
+
+
+```{r}
+#sum confusion of models
+conf <- data.frame(models = c('decision tree','random forest','xgboost model'),
+                  Sensitivity = c(1-0.490709, 1-0.502346, 1-0.475760),
+                  Specificity = c(1-0.035338, 1-0.035467, 1-0.020811))
+conf
+```
+
+```{r}
+#plot Sensitivity of models
+sensitivity <-barplot(height = c(conf$Sensitivity), 
+                       beside = TRUE, 
+                       col = c("lightblue"),
+                       main = "Sensitivity of Models", 
+                       xlab = "Models", 
+                       ylab = "Sensitivity",
+                       names.arg = conf$models,
+                       ylim = c(0, 0.6))
+# add values on top of each bar
+text(x = sensitivity,  
+     y = conf$Sensitivity + 0.02,  
+     labels = round(conf$Sensitivity, 3),  
+     pos = 3,  
+     col = "black")  
+```
+
+```{r}
+#plot Specificity of models
+specificity <- barplot(height = c(conf$Specificity), 
+                       beside = TRUE, 
+                       col = c("lightblue"),
+                       main = "Specificity of Models", 
+                       xlab = "Models", 
+                       ylab = "Specificity",
+                       names.arg = conf$models,
+                       ylim = c(0, 1.1))
+# add values on top of each bar
+text(x = specificity,  
+     y = conf$Specificity + 0.02,  
+     labels = round(conf$Specificity, 3),  
+     pos = 3,  
+     col = "black") 
+```
+
+```{r}
+# Prepare package
+library(ggplot2)
+
+# Create a data frame of accuracy
+df_auc <- data.frame(models = auc$models, auc_test = auc$auc_test)
+
+# Plot accuracy
+ggplot(df_auc, aes(x = models, y = auc_test, fill = factor(models))) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.5) +
+  labs(title = "Accuracy of Models", x = "Models", y = "AUC") +
+  geom_text(aes(label = round(auc_test, 3)), position = position_dodge(width = 0.5), vjust = -0.5) +
+  ylim(0, 1) +
+  theme_minimal()
+```
+
+```{r}
+# Create a data frame of sensitivity
+df_sensitivity <- data.frame(models = conf$models, Sensitivity = conf$Sensitivity)
+
+# Plot using ggplot2
+ggplot(df_sensitivity, aes(x = models, y = Sensitivity, fill = factor(models))) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.5) +
+  labs(title = "Sensitivity of Models", x = "Models", y = "Sensitivity") +
+  geom_text(aes(label = round(Sensitivity, 3)), position = position_dodge(width = 0.5), vjust = -0.5) +
+  ylim(0, 0.6) +
+  theme_minimal()
+```
+
+```{r}
+# Create a data frame of specificity
+df_specificity <- data.frame(models = conf$models, Specificity = conf$Specificity)
+
+# Plot specificity
+ggplot(df_specificity, aes(x = models, y = Specificity, fill = factor(models))) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.5) +
+  labs(title = "Specificity of Models", x = "Models", y = "Specificity") +
+  geom_text(aes(label = round(Specificity, 3)), position = position_dodge(width = 0.5), vjust = -0.5) +
+  ylim(0, 1.1) +
+  theme_minimal()
+```
