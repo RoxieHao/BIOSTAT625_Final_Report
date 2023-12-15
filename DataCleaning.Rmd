@@ -1,0 +1,189 @@
+---
+title: "raw data cleaning"
+author: "Yuxiao Nie"
+date: "2023-11-19"
+output: html_document
+---
+
+```{r}
+library(haven)
+library(dplyr)
+data <- read_xpt("LLCP2022.XPT")
+write.csv(data, "hdraw.csv", row.names = TRUE)
+nrow(data)
+```
+
+```{r}
+# install.packages("foreign")
+# library(foreign)
+# dataset <- read.xport("D:/xx/625/final/raw/LLCP2022.XPT ")
+# 
+# total_rows <- nrow(dataset)
+# rows_per_file <- total_rows / 20
+# 
+# split_datasets <- split(dataset, cut(seq(nrow(dataset)), breaks=20, labels=FALSE))
+# 
+# for(i in 1:length(split_datasets)) {
+#   write.csv(split_datasets[[i]], file = paste0("D:/xx/625/final/raw/split", i, ".csv"))
+# }
+# 
+# 
+# setwd("D:/xx/625/final/raw/split/")
+# knitr::opts_knit$set(root.dir = 'D:/xx/625/final/raw/split/')
+csv_files <- list.files(pattern = "*.csv")
+data_list <- lapply(csv_files, read.csv)
+combined_data <- do.call(rbind, data_list)
+
+write.csv(combined_data, file = "Combined_data.csv", row.names = FALSE)
+```
+
+
+```{r}
+data <- read.csv("Combined_data.csv", head = TRUE)
+```
+
+```{r}
+nrow(data)
+coln <- colnames(data)
+data.in <- data %>%
+select('X_STATE', 'SEXVAR', 'GENHLTH', 'PHYSHLTH', 'MENTHLTH', 'CHECKUP1',
+       'EXERANY2', 'SLEPTIM1', 'RMVTETH4', 'CVDINFR4', 'CVDCRHD4',
+       'CVDSTRK3', 'ASTHMA3', 'CHCSCNC1', 'CHCCOPD3', 'ADDEPEV3',
+       'CHCKDNY2', 'HAVARTH4', 'DIABETE4', 'DEAF', 'BLIND', 'DECIDE',
+       'DIFFWALK', 'DIFFDRES', 'DIFFALON', 'X_SMOKER3', 'ECIGNOW2',
+       'LCSCTSC1', 'X_RACEGR4', 'X_AGEG5YR', 'HTM4', 'WTKG3', 'X_BMI5',
+       'DRNKANY6', 'X_AIDTST4', 'FLUSHOT7', 'PNEUVAC4', 'TETANUS1',
+       'HIVRISK5', 'COVIDPOS')
+data.in.com <- na.omit(data.in)
+nrow(data.in.com)
+```
+
+```{r}
+newcolname <- c("State","Sex", "GeneralHealth", "PhysicalHealthDays", "MentalHealthDays", "LastCheckupTime", 
+                "PhysicalActivities", "SleepHours", "RemovedTeeth", "HadHeartAttack","HadAngina","HadStroke",
+                "HadAsthma","HadSkinCancer","HadCOPD","HadDepressiveDisorder","HadKidneyDisease",
+                "HadArthritis","HadDiabetes","DeafOrHardOfHearing","BlindOrVisionDifficulty","DifficultyConcentrating",
+                "DifficultyWalking","DifficultyDressingBathing","DifficultyErrands","SmokerStatus","ECigaretteUsage",
+                "ChestScan","RaceEthnicityCategory","AgeCategory","HeightInMeters","WeightInKilograms","BMI",
+                "AlcoholDrinkers","HIVTesting","FluVaxLast","PneumoVaxEver","TetanusLastTdap",
+                "HighRiskLastYear","CovidPos")
+colnames(data.in.com) <- newcolname
+```
+
+```{r}
+data.in.com$BMI <- data.in.com$BMI/100
+data.in.com$WeightInKilograms <- data.in.com$WeightInKilograms/100
+data.in.com$HeightInMeters <- data.in.com$HeightInMeters/100
+data.in.com$PhysicalHealthDays <- ifelse(data.in.com$ PhysicalHealthDays == 88, 0, 
+                                      ifelse(data.in.com$ PhysicalHealthDays == 77 |
+                                               data.in.com$ PhysicalHealthDays == 99, NA, 
+                                             data.in.com$ PhysicalHealthDays))
+data.in.com$MentalHealthDays <- ifelse(data.in.com$ MentalHealthDays == 88, 0, 
+                                      ifelse(data.in.com$ MentalHealthDays == 77 |
+                                               data.in.com$ MentalHealthDays == 99, NA, 
+                                             data.in.com$ MentalHealthDays))
+data.in.com$SleepHours <- ifelse(data.in.com$SleepHours > 24, NA, data.in.com$SleepHours)
+
+age_category_mapping <- c("Age 18 to 24", "Age 25 to 29", "Age 30 to 34", "Age 35 to 39",
+                           "Age 40 to 44", "Age 45 to 49", "Age 50 to 54", "Age 55 to 59",
+                           "Age 60 to 64", "Age 65 to 69", "Age 70 to 74", "Age 75 to 79",
+                           "Age 80 or older")
+data.in.com$AgeCategory <- factor(data.in.com$AgeCategory, levels = 1:13, labels = age_category_mapping)
+
+state_mapping <- c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+                   "Connecticut", "Delaware", "District of Columbia", "Florida", "Georgia",
+                   "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+                   "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+                   "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire",
+                   "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota",
+                   "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+                   "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia",
+                   "Washington", "West Virginia", "Wisconsin", "Wyoming", "Guam", "Puerto Rico",
+                   "Virgin Islands")
+data.in.com$State <- factor(data.in.com$State, levels = unique(data.in.com$State), labels = state_mapping)
+
+data.in.com$Sex <- elseif(data.in.com$Sex == 1, 'Male', 'Female')
+
+last_checkup_mapping <- c(
+  "Within past year (anytime less than 12 months ago)",
+  "Within past 2 years (1 year but less than 2 years ago)",
+  "Within past 5 years (2 years but less than 5 years ago)",
+  "5 or more years ago"
+)
+data.in.com$LastCheckupTime <- factor(data.in.com$LastCheckupTime, levels = 1:4, labels = last_checkup_mapping)
+
+diabetes_mapping <- c(
+  "Yes",
+  "Yes, but only during pregnancy (female)",
+  "No",
+  "No, pre-diabetes or borderline diabetes"
+)
+data.in.com$HadDiabetes <- factor(data.in.com$HadDiabete, levels = 1:4, labels = diabetes_mapping)
+
+smoker_status_mapping <- c(
+  "Current smoker - now smokes every day",
+  "Current smoker - now smokes some days",
+  "Former smoker",
+  "Never smoked"
+)
+data.in.com$SmokerStatus <- factor(data.in.com$SmokerStatus, levels = 1:4, labels = smoker_status_mapping)
+
+ecigarettes_mapping <- c(
+  "Never used e-cigarettes in my entire life",
+  "Use them every day",
+  "Use them some days",
+  "Not at all (right now)"
+)
+data.in.com$ECigaretteUsage <- factor(data.in.com$ECigaretteUsage, levels = 1:4, labels = ecigarettes_mapping)
+
+race_mapping <- c(
+  "White only, Non-Hispanic",
+  "Black only, Non-Hispanic",
+  "Other race only, Non-Hispanic",
+  "Multiracial, Non-Hispanic",
+  "Hispanic"
+)
+data.in.com$RaceEthnicityCategory <- 
+  factor(data.in.com$RaceEthnicityCategory, levels = 1:5, labels = race_mapping)
+
+tetanus_mapping <- c(
+  "Yes, received Tdap",
+  "Yes, received tetanus shot, but not Tdap",
+  "Yes, received tetanus shot but not sure what type",
+  "No, did not receive any tetanus shot in the past 10 years"
+)
+data.in.com$TetanusLastTdap <- factor(data.in.com$TetanusLastTdap, levels = 1:4, labels = tetanus_mapping)
+
+covid_mapping <- c(
+  "Yes",
+  "No",
+  "Tested positive using home test without a health professional"
+)
+data.in.com$CovidPos <- factor(data.in.com$CovidPos, levels = 1:3, labels = covid_mapping)
+
+#yes_no_questions
+columns_to_replace <- c('PhysicalActivities', 'HadHeartAttack', 'HadAngina', 
+            'HadStroke', 'HadAsthma', 'HadSkinCancer', 'HadCOPD', 'HadDepressiveDisorder', "HadKidneyDisease",
+                "HadArthritis","DeafOrHardOfHearing","BlindOrVisionDifficulty","DifficultyConcentrating",
+                "DifficultyWalking","DifficultyDressingBathing","DifficultyErrands", "ChestScan",
+                "AlcoholDrinkers","HIVTesting","FluVaxLast","PneumoVaxEver","HighRiskLastYear")
+
+for (column in columns_to_replace) {
+  data.in.com[[column]] <- factor(data.in.com[[column]], levels = c(1, 2), labels = c("Yes", "No"))
+}
+```
+
+```{r}
+write.csv(data.in.com, "hd_data.csv", row.names = TRUE)
+data.clean <- na.omit(data.in.com)
+nrow(data.clean)
+ncol(data.clean)
+write.csv(data.clean, "hd_data_clean.csv", row.names = TRUE)
+```
+
+
+
+
+
+
+
