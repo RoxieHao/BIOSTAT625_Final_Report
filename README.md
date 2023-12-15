@@ -18,6 +18,8 @@ Final Project Report: Final Report.pdf
 
 ### Contribution
 Ruoxi Hao contributed to finding research data, coding and writing of data visualization (R shiny), Random Forest Model, and conclusion and discussion part.
+
 Zhuoxin Fu contributed to finding research data, coding and writing Xgboost Model and Graphics, and writing the Introduction part.
+
 Yuxiao Nie contributed to finding and processing research data, coding Decision Tree Model, and writing the Data and Decision Tree Model part.
 
